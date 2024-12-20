@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"wallet/internal/model"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,17 +25,15 @@ type ConnectionParameters struct {
 
 func New(ctx *context.Context, cp *ConnectionParameters) (*PgxPool, error) {
 	var err error
-	// log.Info(fmt.Sprintf("подключение к БД postgres://%s:%s/%s", cp.Host, cp.Port, cp.Database))
 
 	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", cp.User, cp.Password, cp.Host, cp.Port, cp.Database)
+	log.Info("connect to ", connectionString)
 
 	pg := new(PgxPool)
 	pg.Pool, err = pgxpool.New(*ctx, connectionString)
 	if err != nil {
-		// log.Error("не удалось подключить ся к БД")
-		// log.Debug(err)
-
-		return nil, fmt.Errorf("не удалось подключить ся к БД")
+		log.Error("не удалось подключить ся к БД")
+		return nil, err
 	}
 
 	pg.ctx = ctx
@@ -41,27 +41,49 @@ func New(ctx *context.Context, cp *ConnectionParameters) (*PgxPool, error) {
 	return pg, nil
 }
 
-func (pool *PgxPool) GetBalance(walletId string) (float32, error) {
-	rows, err := pool.Query(*pool.ctx, "SELECT wallet_id, amount FROM public.wallets WHERE wallet_id=$1", walletId)
+func (pool *PgxPool) GetBalance(walletId string) (*model.WalletBalance, error) {
+	log.Debug("SELECT SUM(amount) as balance FROM public.operations WHERE wallet_id=", walletId)
+
+	rows, err := pool.Query(*pool.ctx, "SELECT SUM(amount) as balance FROM public.operations WHERE wallet_id=$1", walletId)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	defer rows.Close()
 
-	var balance float32
+	var balance interface{}
 
 	for rows.Next() {
-		err := rows.Scan(balance)
+		err := rows.Scan(&balance)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
 	}
 
-	return balance, nil
+	if balance != nil {
+		return &model.WalletBalance{
+			WalletId: walletId,
+			Balance:  balance.(float64),
+		}, nil
+	}
+
+	return nil, model.ErrNonExistentWallet
 }
 
 func (pool *PgxPool) CarryOperation(op model.Operation) error {
+	var amount float64
+
+	if amount = op.GetAmount(); amount == 0 {
+		return model.ErrZeroAmount
+	}
+
+	result, err := pool.Exec(*pool.ctx, "INSERT INTO public.operations(wallet_id, amount) VALUES($1, $2)", op.WalletId, fmt.Sprintf("%f", amount))
+	if err != nil {
+		return err
+	}
+
+	log.Println(result)
+
 	return nil
 }

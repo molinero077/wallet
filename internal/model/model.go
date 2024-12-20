@@ -1,23 +1,40 @@
 package model
 
+import (
+	"errors"
+	"math"
+	"strings"
+)
+
 type Operation struct {
 	WalletId      string  `json:"valletId"`
 	OperationType string  `json:"operationType"`
-	Amount        float32 `json:"amount"`
+	Amount        float64 `json:"amount"`
+}
+
+// GetAmount - возращает сумму операции. DEPOSIT +сумма, WITHDRAW -сумма
+func (op *Operation) GetAmount() float64 {
+	switch strings.ToLower(op.OperationType) {
+	case "deposit":
+		return math.Abs(op.Amount)
+	case "withdraw":
+		return math.Abs(op.Amount) * -1
+	default:
+		return 0
+	}
 }
 
 type WalletBalance struct {
 	WalletId string  `json:"valletId"`
-	Amount   float32 `json:"amount"`
-}
-
-type Wallet struct {
-	WalletId     string `json:"valletId"`
-	UserId       string `json:"userId"`
-	CreationDate string `json:"creationDate"`
+	Balance  float64 `json:"balance"`
 }
 
 type WalletProvider interface {
-	GetBalance(id string) (float32, error)
+	GetBalance(id string) (*WalletBalance, error)
 	CarryOperation(ops Operation) error
 }
+
+var (
+	ErrNonExistentWallet = errors.New("non-existent wallet")
+	ErrZeroAmount        = errors.New("zero amount")
+)
