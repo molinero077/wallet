@@ -17,6 +17,8 @@ CREATE TABLE operations (
     amount FLOAT NOT NULL
 );
 
+CREATE INDEX idx_wallet_id ON operations (wallet_id);
+
 -- тестовые данные
 WITH new_user AS (
     INSERT INTO users(user_name) VALUES('user1') RETURNING user_id
