@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"strconv"
 	"strings"
-	"wallet/internal/app"
+	"wallet/internal/api/v1/app"
 	"wallet/internal/model"
 	"wallet/internal/model/postgres"
 
@@ -16,8 +17,14 @@ import (
 
 func main() {
 	log.SetLevel(log.DebugLevel)
+	filePath, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	err := godotenv.Load("./config.env")
+	configFile := fmt.Sprintf("%s/%s", path.Dir(filePath), "config.env")
+	log.Info("config file will be used: ", configFile)
+	err = godotenv.Load(configFile)
 	if err != nil {
 		log.Fatal("no .env file")
 	}

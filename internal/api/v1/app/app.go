@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"wallet/internal/model"
 
@@ -35,7 +36,7 @@ func (app *App) Run(addr string) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/v1/wallet", app.CurryOperation)
-	mux.HandleFunc("GET /api/v1/wallets/{wallet_uuid}", app.getWallet)
+	mux.HandleFunc("GET /api/v1/wallets/{wallet_uuid}", app.getBalance)
 
 	log.Info("Server is started. Listen on ", addr)
 	log.Fatal(http.ListenAndServe(addr, middleWareLogger(mux)))
@@ -48,7 +49,7 @@ func middleWareLogger(next http.Handler) http.Handler {
 	})
 }
 
-func (app *App) getWallet(w http.ResponseWriter, req *http.Request) {
+func (app *App) getBalance(w http.ResponseWriter, req *http.Request) {
 
 	wallet_uuid := req.PathValue("wallet_uuid")
 
@@ -72,13 +73,13 @@ func (app *App) getWallet(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Debug("trying to marshal struct to json")
+	log.Debug("trying to marshal struct to json ", balance)
 	payload, err := json.Marshal(balance)
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	log.Debug("the structure is successfully marshaled to json")
+	log.Debug("marshaling to json successful")
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -87,18 +88,26 @@ func (app *App) getWallet(w http.ResponseWriter, req *http.Request) {
 
 func (app *App) CurryOperation(w http.ResponseWriter, req *http.Request) {
 	var operation model.Operation
+	var body []byte
 
-	log.Debug("trying to marshal struct to json")
-
-	operationDecoder := json.NewDecoder(req.Body)
-	err := operationDecoder.Decode(&operation)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	log.Debug("the structure is successfully marshaled to json")
+	log.Debug("trying to unmarshal json to struct ", string(body))
+
+	err = json.Unmarshal(body, &operation)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	log.Debug("unmarshaled to struct successful")
+
 	err = app.storage.CarryOperation(operation)
 	if err != nil {
 		log.Error(err)
@@ -106,4 +115,5 @@ func (app *App) CurryOperation(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 }

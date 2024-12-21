@@ -42,6 +42,7 @@ func New(ctx *context.Context, cp *ConnectionParameters) (*PgxPool, error) {
 }
 
 func (pool *PgxPool) GetBalance(walletId string) (*model.WalletBalance, error) {
+	log.Debug("get balance of the wallet ", walletId)
 	log.Debug("SELECT SUM(amount) as balance FROM public.operations WHERE wallet_id=", walletId)
 
 	rows, err := pool.Query(*pool.ctx, "SELECT SUM(amount) as balance FROM public.operations WHERE wallet_id=$1", walletId)
@@ -78,12 +79,15 @@ func (pool *PgxPool) CarryOperation(op model.Operation) error {
 		return model.ErrZeroAmount
 	}
 
-	result, err := pool.Exec(*pool.ctx, "INSERT INTO public.operations(wallet_id, amount) VALUES($1, $2)", op.WalletId, fmt.Sprintf("%f", amount))
+	log.Debug("operations with the wallet ", op.WalletId)
+	log.Debug(fmt.Sprintf("INSERT INTO public.operations(wallet_id, amount) VALUES(%s, %f)", op.WalletId, amount))
+
+	isnertResult, err := pool.Exec(*pool.ctx, "INSERT INTO public.operations(wallet_id, amount) VALUES($1, $2)", op.WalletId, fmt.Sprintf("%f", amount))
 	if err != nil {
 		return err
 	}
 
-	log.Println(result)
+	log.Debug(isnertResult)
 
 	return nil
 }
