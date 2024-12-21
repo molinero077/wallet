@@ -38,7 +38,7 @@ func New(ctx *context.Context, cp *ConnectionParameters) (*PgxPool, error) {
 
 	pg.ctx = ctx
 
-	return pg, nil
+	return pg, pg.Ping(*ctx)
 }
 
 func (pool *PgxPool) GetBalance(walletId string) (*model.WalletBalance, error) {
