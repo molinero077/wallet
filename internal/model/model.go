@@ -35,6 +35,6 @@ type WalletProvider interface {
 }
 
 var (
-	ErrNonExistentWallet = errors.New("non-existent wallet")
-	ErrZeroAmount        = errors.New("zero amount")
+	ErrNonExistentWallet error = errors.New("non-existent wallet")
+	ErrZeroAmount        error = errors.New("zero amount")
 )
