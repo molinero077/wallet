@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+var (
+	ErrWalletIdMissing     error = errors.New("walletId is required")
+	ErrOperationTypeMissin error = errors.New("operationType is required")
+	ErrAmountMissing       error = errors.New("amount is required")
+)
+
 type Operation struct {
 	WalletId      string  `json:"valletId"`
 	OperationType string  `json:"operationType"`
@@ -24,14 +30,28 @@ func (op *Operation) GetAmount() float64 {
 	}
 }
 
+func (op *Operation) CheckRequiredFields() error {
+	if op.WalletId == "" {
+		return ErrWalletIdMissing
+	}
+	if op.OperationType == "" {
+		return ErrOperationTypeMissin
+	}
+	if op.Amount == 0 {
+		return ErrAmountMissing
+	}
+
+	return nil
+}
+
 type WalletBalance struct {
 	WalletId string  `json:"valletId"`
 	Balance  float64 `json:"balance"`
 }
 
 type WalletProvider interface {
-	GetBalance(id string) (*WalletBalance, error)
-	CarryOperation(ops Operation) error
+	GetWalletBalance(id string) (*WalletBalance, error)
+	WalletOperation(ops Operation) error
 }
 
 var (

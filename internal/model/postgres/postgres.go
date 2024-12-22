@@ -41,7 +41,7 @@ func New(ctx *context.Context, cp *ConnectionParameters) (*PgxPool, error) {
 	return pg, pg.Ping(*ctx)
 }
 
-func (pool *PgxPool) GetBalance(walletId string) (*model.WalletBalance, error) {
+func (pool *PgxPool) GetWalletBalance(walletId string) (*model.WalletBalance, error) {
 	log.Debug("get balance of the wallet ", walletId)
 	log.Debug("SELECT SUM(amount) as balance FROM public.operations WHERE wallet_id=", walletId)
 
@@ -72,7 +72,7 @@ func (pool *PgxPool) GetBalance(walletId string) (*model.WalletBalance, error) {
 	return nil, model.ErrNonExistentWallet
 }
 
-func (pool *PgxPool) CarryOperation(op model.Operation) error {
+func (pool *PgxPool) WalletOperation(op model.Operation) error {
 	var amount float64
 
 	if amount = op.GetAmount(); amount == 0 {
