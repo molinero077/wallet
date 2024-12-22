@@ -62,10 +62,10 @@ func (app *App) getWalletBalance(w http.ResponseWriter, req *http.Request) {
 
 	balance, err := app.storage.GetWalletBalance(wallet_uuid)
 	if err != nil {
-		// не выводить пользователю ошибко о несуществующем кошельке, только статус
+		// попытка узнать баланс несуществующего wallet
 		if errors.Is(err, model.ErrNonExistentWallet) {
 			log.Error("attempt to get balance of non-existent wallet")
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
@@ -116,6 +116,12 @@ func (app *App) walletOperation(w http.ResponseWriter, req *http.Request) {
 
 	err = app.storage.WalletOperation(operation)
 	if err != nil {
+		// попытка оперпции по несуществующему wallet
+		if errors.Is(err, model.ErrNonExistentWallet) {
+			log.Error("attempt to get balance of non-existent wallet")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		log.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return

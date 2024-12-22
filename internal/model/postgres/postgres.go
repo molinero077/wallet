@@ -79,6 +79,17 @@ func (pool *PgxPool) WalletOperation(op model.Operation) error {
 		return model.ErrZeroAmount
 	}
 
+	rows, err := pool.Query(*pool.ctx, "SELECT wallet_id FROM public.operations WHERE wallet_id=$1", op.WalletId)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	if !rows.Next() {
+		return model.ErrNonExistentWallet
+	}
+
 	log.Debug("operations with the wallet ", op.WalletId)
 	log.Debug(fmt.Sprintf("INSERT INTO public.operations(wallet_id, amount) VALUES(%s, %f)", op.WalletId, amount))
 
